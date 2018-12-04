@@ -8,7 +8,9 @@ import qualified Data.Map.Strict as Map
 main =  do  
         f <- readFile "input.txt"
         let ids = words f in
-            putStrLn $ show $ calcCheckSum $ useHasOfOnInput ids (0,0)
+            do
+                putStrLn $ show $ calcCheckSum $ useHasOfOnInput ids (0,0)
+                putStrLn $ show $ checkDifs ids ids ""
 
 
 hasOf :: String -> Map.Map Char Int -> [(Char, Int)]
@@ -45,3 +47,32 @@ addTup a b =
         (y, z) = b
         in ((w + y), (x + z))
 
+
+--dangerously assumes both strings are the same length
+difString:: String -> String -> Int -> String -> (Int, String)
+difString stra strb countDiff comp =
+    case stra of
+        [] -> (countDiff, (reverse comp))
+        (x:xs) ->
+            let (x1:xs1) = strb in
+                case x1 of
+                    x1 | x1 /= x -> difString xs xs1 (countDiff+1) comp
+                    x1 | x1 == x -> difString xs xs1 countDiff (x:comp)
+
+--bad
+checkDifs::[String] -> [String] -> String -> String
+checkDifs orig work curString =
+    case work of
+        [] -> let (_:o) = orig in checkDifs o o ""
+        otherwise ->
+            case curString of
+                [] -> let (x:xs) = work in checkDifs orig xs x
+                otherwise -> let    (x:xs) = work
+                                    s = difString x curString 0 ""
+                                    (numDif, str) = s
+                                    in
+                                        case numDif of
+                                            n | n == 1 -> 
+                                                case str of
+                                                    str | (length str) == ((length x)-1) -> str
+                                            otherwise ->checkDifs orig xs curString
