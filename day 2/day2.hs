@@ -9,8 +9,8 @@ main =  do
         f <- readFile "input.txt"
         let ids = words f in
             do
-                putStrLn $ show $ calcCheckSum $ useHasOfOnInput ids (0,0)
-                putStrLn $ show $ checkDifs ids ids ""
+                putStrLn . show . calcCheckSum $ useHasOfOnInput ids (0,0)
+                putStrLn . show $ checkDifs ids ids ""
 
 
 hasOf :: String -> Map.Map Char Int -> [(Char, Int)]
