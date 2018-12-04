@@ -4,12 +4,9 @@ module Main where
 import Data.List.Split
 
 
-main = putStrLn $ show $ readClaim "#1 @ 1,3: 4x4"
-
-
+main = putStrLn $ show $ updatels [1,2,3,4] 1 3 []
 
 splitLines str = splitOn "\n" str
-
 
 readClaim str = 
     let
@@ -27,7 +24,27 @@ readClaim str =
             claim
 
 data Claim = Claim {
-    claim_id::String,
-    claim_pos:: (Int, Int),
-    claim_dim:: (Int, Int)
+    cl_id::String,
+    cl_pos:: (Int, Int),
+    cl_dim:: (Int, Int)
     }deriving (Show)
+
+data Fabric = Fabric {
+    fab_width::Int,
+    fab_height::Int,
+    fab_squares::[SquareInch]
+}deriving (Show)
+
+getInch (Fabric w h a) x y = a!!((w*y) + x)
+
+setInch (Fabric w h a) x y inch =  let new_a = updatels a ((w*y) + x) inch [] in (Fabric w h new_a)
+
+data SquareInch = SquareInch {
+    si_claim_ids :: [String]
+}deriving (Show)
+
+
+updatels (h:tl) i elem accul =
+    case i of
+        i | i == 0 -> (reverse accul) ++ (elem:tl)
+        otherwise -> updatels tl (i-1) elem (h:accul)
