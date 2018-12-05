@@ -10,37 +10,47 @@ main = do
     let 
         claims = f
         claimList = inputToClaimList claims
+        idsquares = claimListToIdSquares claimList
         fabric = new_fabric 1000 1000
-        fabric1 = populateFabricInchesWithClaims claimList fabric
-        count = count2orMoreClaims claimList fabric1 0
+        fabric1 = populateFabricInchesWithClaims idsquares fabric
+        checker = squareToPosList 0 0 1000 1000
+        count = count2orMoreClaims checker fabric1 0
         in
-            putStrLn $ show tslist
+            putStrLn $ show count
 
 
 --Joint fabric and claim stuff
-count2orMoreClaims:: [Claim] -> Fabric -> Int -> Int
-count2orMoreClaims claimls (Fabric w h m) a =
-    case claimls of
-        [] -> a
-        ((Claim _ pos _):xs) -> 
-            let Just (SquareInch arr) = Map.lookup pos m
-                numClaims = (length arr)
+count2orMoreClaims ls (Fabric w h m) a =
+    case ls of
+        []-> a
+        (hd:tl) -> 
+            let 
+                Just (SquareInch ids) = Map.lookup hd m
                 in
-                    case numClaims of
-                        n | n > 1 -> count2orMoreClaims xs (Fabric w h m) (a + 1)
-                        otherwise -> count2orMoreClaims xs (Fabric w h m) a
+                    case ids of
+                        ids|(length ids) > 1 -> count2orMoreClaims tl (Fabric w h m) (a+1)
+                        otherwise -> count2orMoreClaims tl (Fabric w h m) a
 
 
-populateFabricInchesWithClaims claims fabric@(Fabric fw fh m) =
-    case claims of
-        [] -> fabric
-        ((Claim cid (cx,cy) (cw,ch)):rest_claims) -> undefined
+
+populateFabricInchesWithClaims idRects fabric =
+    let 
+        popu rects f =
+            case rects of
+                [] -> f
+                ((id, ls):rest) -> popu rest (pop id ls f)
+        pop id ins f2 =
+            case ins of
+                [] -> f2
+                (pos:rl) -> pop id rl (addIdToSquareInchOfFabric id pos f2)
+        in popu idRects fabric
+            
 
 addIdToSquareInchOfFabric id pos f@(Fabric fw fh fm) =
     let Just (SquareInch arr) = Map.lookup pos fm
         new_arr = id:arr
         new_fm = Map.insert pos (SquareInch new_arr) fm
-        in f
+        in (Fabric fw fh new_fm)
 
 --Joint fabric and claim stuff end
 
@@ -64,6 +74,12 @@ readClaim str =
         (claim, _) = readClaim' ( (Claim "" (0,0) (0,0)) , str )
         in claim
 
+claimListToIdSquares claims =
+    let f c l =
+            case c of
+                [] -> l
+                ((Claim id (x,y) (w,h)):tl) -> f tl ((id, (squareToPosList x y w h)):l)
+            in f claims []
 
 inputToClaimList:: String -> [Claim]
 inputToClaimList input = 
