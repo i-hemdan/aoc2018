@@ -14,13 +14,15 @@ main = do
         fabric = new_fabric 1000 1000
         fabric1 = populateFabricInchesWithClaims idsquares fabric
         checker = squareToPosList 0 0 1000 1000
-        count = count2orMoreClaims checker fabric1 0
+        count = countNorMoreClaims 2 checker fabric1 0
         in
-            putStrLn $ show count
+            do
+                putStrLn $ show count
+                putStrLn $ findUniqueClaim idsquares fabric1
 
 
 --Joint fabric and claim stuff
-count2orMoreClaims ls (Fabric w h m) a =
+countNorMoreClaims n ls (Fabric w h m) a =
     case ls of
         []-> a
         (hd:tl) -> 
@@ -28,8 +30,20 @@ count2orMoreClaims ls (Fabric w h m) a =
                 Just (SquareInch ids) = Map.lookup hd m
                 in
                     case ids of
-                        ids|(length ids) > 1 -> count2orMoreClaims tl (Fabric w h m) (a+1)
-                        otherwise -> count2orMoreClaims tl (Fabric w h m) a
+                        ids|(length ids) >= n -> countNorMoreClaims n tl (Fabric w h m) (a+1)
+                        otherwise -> countNorMoreClaims n tl (Fabric w h m) a
+
+findUniqueClaim idSquares fabric =
+    case idSquares of
+        [] -> "fail"
+        ((id, ls):rest) -> 
+            let 
+                c = countNorMoreClaims 2 ls fabric 0
+                in
+                    case c of
+                        c| c == 0 -> id
+                        otherwise -> findUniqueClaim rest fabric
+
 
 
 
