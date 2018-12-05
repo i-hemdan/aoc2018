@@ -2,6 +2,7 @@ module Main where
 
 
 import Data.List.Split
+import qualified Data.Map.Strict as Map
 
 
 main = do 
@@ -10,24 +11,36 @@ main = do
         claims = f
         claimList = inputToClaimList claims
         fabric = new_fabric 1000 1000
-        fabric1 = populateFabricWithClaims claimList fabric
-        count = count2orMoreClaims 0 fabric1
+        fabric1 = populateFabricInchesWithClaims claimList fabric
+        count = count2orMoreClaims claimList fabric1 0
         in
-            putStrLn  "hello"
+            putStrLn $ show tslist
 
 
 --Joint fabric and claim stuff
-count2orMoreClaims a !(Fabric w h ls) =
-    case ls of
+count2orMoreClaims:: [Claim] -> Fabric -> Int -> Int
+count2orMoreClaims claimls (Fabric w h m) a =
+    case claimls of
         [] -> a
-        !(x:xs) | (length $ si_claim_ids x) >= 2 -> count2orMoreClaims (a + 1) (Fabric w h xs) 
+        ((Claim _ pos _):xs) -> 
+            let Just (SquareInch arr) = Map.lookup pos m
+                numClaims = (length arr)
+                in
+                    case numClaims of
+                        n | n > 1 -> count2orMoreClaims xs (Fabric w h m) (a + 1)
+                        otherwise -> count2orMoreClaims xs (Fabric w h m) a
 
-populateFabricWithClaims claims fabric@(Fabric w h !a) =
+
+populateFabricInchesWithClaims claims fabric@(Fabric fw fh m) =
     case claims of
         [] -> fabric
-        !(hd:tl) -> 
-            case hd of
-                (Claim id (x, y) (wd, ht)) -> let (SquareInch clms) = getInch fabric x y in populateFabricWithClaims tl (setInch fabric x y (SquareInch (id:clms))) 
+        ((Claim cid (cx,cy) (cw,ch)):rest_claims) -> undefined
+
+addIdToSquareInchOfFabric id pos f@(Fabric fw fh fm) =
+    let Just (SquareInch arr) = Map.lookup pos fm
+        new_arr = id:arr
+        new_fm = Map.insert pos (SquareInch new_arr) fm
+        in f
 
 --Joint fabric and claim stuff end
 
@@ -39,12 +52,12 @@ data Claim = Claim {
     }deriving (Show)
 
 readClaim str = 
-    let getId !((Claim _ pos dim), str) = let a = splitOn "@" str in ((Claim (a!!0) pos dim), (a!!1))
+    let getId ((Claim _ pos dim), str) = let a = splitOn "@" str in ((Claim (a!!0) pos dim), (a!!1))
 
-        getPos !((Claim id _ dim), str) = 
+        getPos ((Claim id _ dim), str) = 
             let a = splitOn ":" str in let b = splitOn "," (a!!0)in ((Claim id ( (read (b!!0))+1 , (read(b!!1))+1 ) dim), (a!!1))
 
-        getDim !((Claim id pos _), str) = let a = splitOn "x" str in ((Claim id pos ((read $ a!!0), (read $ a!!1))), str)
+        getDim ((Claim id pos _), str) = let a = splitOn "x" str in ((Claim id pos ((read $ a!!0), (read $ a!!1))), str)
 
         readClaim' = getDim . getPos . getId
 
@@ -66,14 +79,20 @@ inputToClaimList input =
 data Fabric = Fabric {
     fab_width::Int,
     fab_height::Int,
-    fab_squares::[SquareInch]
+    fab_squares::Map.Map (Int, Int) SquareInch
 }deriving (Show)
 
-new_fabric w h = (Fabric w h [ (SquareInch []) | e <- [1 .. w*h]])
+new_fabric w h = 
+    let gen wid l =
+            case wid of
+                wid | wid-1 >= 0 -> gen (wid-1) (gen' (wid-1) (h-1) l)
+                otherwise -> l
+        gen' x y l =
+            case y of
+                y | y >= 0 -> gen' x (y - 1) (((x, y), (SquareInch [])):l)
+                otherwise -> l
+        in (Fabric w h (Map.fromList $ gen w []))
 
-getInch (Fabric w h a) x y = a!!((w*y) + x)
-
-setInch (Fabric w h a) x y inch =  let new_a = updatels a ((w*y) + x) inch [] in (Fabric w h new_a)
 
 data SquareInch = SquareInch {
     si_claim_ids :: [String]
@@ -86,4 +105,15 @@ updatels (h:tl) i elem accul =
         otherwise -> updatels tl (i-1) elem (h:accul)
 
 splitLines str = splitOn "\n" str
+
+squareToPosList x y w h =
+    let genLine w1 h1 ls =
+            case w1 of
+                w1|w1 > x -> genLine (w1-1) h1 (((w1-1), (h1-1)):ls)
+                w1|w1 == x -> ls
+        genRows w2 h2 ls =
+            case h2 of
+                h2|h2 > y -> genRows w2 (h2-1) ((genLine w2 h2 [])++ls)
+                h2|h2 == y -> ls
+        in genRows (x+w) (y+h) []
 --Util stuff end
