@@ -44,9 +44,6 @@ findUniqueClaim idSquares fabric =
                         c| c == 0 -> id
                         otherwise -> findUniqueClaim rest fabric
 
-
-
-
 populateFabricInchesWithClaims idRects fabric =
     let 
         popu rects f =
