@@ -11,24 +11,33 @@ import qualified Data.Map.Strict as Map
 main = 
     do 
         f <- readFile "input.txt"
-        putStrLn $ show $ doIt f
+        putStrLn $ doIt f
         where
-            doIt = getAllActions . sortParsedTS . parseTimeStamps . splitLines
+            doIt = showShifts . splitShifts . getAllActions . sortParsedTS . parseTimeStamps . splitLines
 
 
 
-data Guard = Guard String [Shift]
-data Shift = Shift [Action]
+data Guard = Guard String [Shift] deriving (Show)
+data Shift = Shift [Action] deriving (Show)
 
+showShifts ls =
+    go ls ""
+    where
+        go [] news = news
+        go (x:xs) news = go xs (news++"\n\n"++(show x))
+
+splitShifts:: [Action] -> [Shift]
 splitShifts ls =
     go ls []
     where
-        go [] ls = ls
-        go (beg@(BeginShift _ _):xs) ls = go xs ((Shift beg:[]):ls)
-        go (x:xs) (hd:tl) =
+        go:: [Action] -> [Shift] -> [Shift]
+        go [] l =  (reverse l) --done
+        go (x:xs) [] = go xs ((Shift (x:[])):[])
+        go (x:[]) (hd@(Shift arr):tl) = go [] ((Shift (reverse (x:arr))):tl)
+        go (x:xs) (hd@(Shift arr):tl) =
             case x of
-                slp@(Asleep _) -> undefined
-                wak@(WakesUp _) -> undefined
+                beg@(BeginShift _ _) -> go xs ((Shift (beg:[])):(((Shift (reverse arr))):tl))
+                x -> go xs ((Shift (x:arr)):tl)
 
 
 parseTimeStamps::[String] -> [(TimeStamp, [String])]
@@ -65,7 +74,7 @@ data    Action =    BeginShift String TimeStamp |
 getAllActions ls = 
     go ls []
     where
-        go [] new_ls = new_ls
+        go [] new_ls = (reverse new_ls)
         go (x:xs) new_ls = go xs ((actionFromTsLs x):new_ls)
 
 actionFromTsLs (_, []) = error "empty list in actionFromTsLs"
