@@ -8,14 +8,10 @@ import qualified Data.Map.Strict as Map
 
 
 
-main = 
-    do 
-        f <- readFile "input.txt"
-        putStrLn $ show $ doIt f
-        where
-            doIt = getGuardIdsFromShifts . splitShifts . getAllActions . sortParsedTS . parseTimeStamps . splitLines
+main =  readFile "input.txt" >>= (\f -> putStrLn $ show $ doIt f)
 
 
+doIt = getGuardIdsFromShifts . splitShifts . getAllActions . sortParsedTS . parseTimeStamps . splitLines
 
 data Guard = Guard String [Shift] deriving (Show)
 data Shift = Shift [Action] deriving (Show)
@@ -27,7 +23,7 @@ showShifts ls =
         
 --TODO structure shifts into individual guards
 
-idFromShift (Shift ((BeginShift id _):_) = id
+idFromShift (Shift ((BeginShift id _):_)) = id
 
 getGuardIdsFromShifts::[Shift] -> [String]
 getGuardIdsFromShifts ls = 
@@ -35,9 +31,9 @@ getGuardIdsFromShifts ls =
     where
         go [] l2 = l2
         go ((shif):xs) l2 = 
-            case idFromShift id of
-                id | id `elem` l2 -> go xs l2
-                otherwise -> go xs (id:l2)
+            case (idFromShift shif) of
+                id1 | id1 `elem` l2 -> go xs l2
+                otherwise -> go xs ((idFromShift shif):l2)
 
 splitShifts:: [Action] -> [Shift]
 splitShifts ls =
