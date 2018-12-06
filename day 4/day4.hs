@@ -1,5 +1,6 @@
 module Main where
 
+import Data.List
 import Data.List.Split
 import qualified Data.Map.Strict as Map
 
@@ -7,35 +8,74 @@ import qualified Data.Map.Strict as Map
 
 
 
-main = putStrLn $ show $ parseEvent "[2018-12-05 10:24]"
+main = 
+    do 
+        f <- readFile "input.txt"
+        putStrLn $ show $ doIt f
+        where
+            doIt = getAllActions . sortParsedTS . parseTimeStamps . splitLines
 
 
 
-data    Event = Event
-                { e_time    ::TimeStamp
-                , e_guard   ::String
-                , e_action  ::Action }
+data Guard = Guard String [Shift]
+data Shift = Shift [Action]
 
-parseEvent str =
-    let
-        parseTimeStamp s1 =
-            let (bdate:timeb:rest) = splitOn " " s1
-                (_:date) = bdate
-                time = take 5 timeb 
-                (y:m:d:_) = splitOn "-" date
-                (h:mi:_) = splitOn ":" time
-                (yn, mn, dn, hn, min) = (read y, read m, read d, read h, read mi)
-                ts = (TimeStamp yn mn dn hn min)
-                in ts
+splitShifts ls =
+    go ls []
+    where
+        go [] ls = ls
+        go (beg@(BeginShift _ _):xs) ls = go xs ((Shift beg:[]):ls)
+        go (x:xs) (hd:tl) =
+            case x of
+                slp@(Asleep _) -> undefined
+                wak@(WakesUp _) -> undefined
+
+
+parseTimeStamps::[String] -> [(TimeStamp, [String])]
+parseTimeStamps ls =
+    let parseTimeStamps' ls new_ls =
+            case ls of
+                [] -> new_ls
+                (x:xs) -> parseTimeStamps' xs ((parseTimeStamp x):new_ls)
         in
-            parseTimeStamp str
-                
+            parseTimeStamps' ls []
 
---      Event
 
-data    Action =    BeginShift  |
-                    Asleep      |
-                    WakesUp
+parseTimeStamp:: String -> (TimeStamp, [String])
+parseTimeStamp str =
+    let (bdate:timeb:rest) = splitOn " " str
+        (_:date) = bdate
+        time = take 5 timeb 
+        (y:m:d:_) = splitOn "-" date
+        (h:mi:_) = splitOn ":" time
+        (yn, mn, dn, hn, min) = (read y, read m, read d, read h, read mi)
+        ts = (TimeStamp yn mn dn hn min)
+        in (ts, rest)
+
+sortParsedTS:: [(TimeStamp, [String])] -> [(TimeStamp, [String])]
+sortParsedTS tstupls = sortBy (\(a,_)(b,_) -> compare a b) tstupls
+
+--      shift
+
+data    Action =    BeginShift String TimeStamp |
+                    Asleep TimeStamp            |
+                    WakesUp TimeStamp
+                    deriving (Show)
+
+getAllActions ls = 
+    go ls []
+    where
+        go [] new_ls = new_ls
+        go (x:xs) new_ls = go xs ((actionFromTsLs x):new_ls)
+
+actionFromTsLs (_, []) = error "empty list in actionFromTsLs"
+actionFromTsLs (ts, (hd:tl)) =
+    case hd of
+        ("Guard") -> BeginShift (tl!!0) ts
+        ("falls") -> Asleep ts
+        ("wakes") -> WakesUp ts
+        otherwise -> error "invalid action"
+
 --      Action   
 
 data    TimeStamp = TimeStamp  
@@ -59,3 +99,9 @@ instance Ord TimeStamp where
     compare t1 t2 = compare (toMinutes t1) (toMinutes t2)
 
 --      TimeStamp
+
+--Utils
+splitLines:: String -> [String]
+splitLines str = splitOn "\n" str
+
+-- Utils end
