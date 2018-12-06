@@ -25,6 +25,14 @@ showShifts ls =
                         go (x:xs) news = go xs (news++"\n\n"++(show x))
     
         
+splitGuards::[Shift] -> [Guard]
+splitGuards ls =
+
+getGuardIdsFromShifts ls =
+    go ls []
+    where
+        go [] l2 = l2
+        go (x:xs)
 
 splitShifts:: [Action] -> [Shift]
 splitShifts ls =
