@@ -11,9 +11,9 @@ import qualified Data.Map.Strict as Map
 main = 
     do 
         f <- readFile "input.txt"
-        putStrLn $ doIt f
+        putStrLn $ show $ doIt f
         where
-            doIt = showShifts . splitShifts . getAllActions . sortParsedTS . parseTimeStamps . splitLines
+            doIt = getGuardIdsFromShifts . splitShifts . getAllActions . sortParsedTS . parseTimeStamps . splitLines
 
 
 
@@ -26,13 +26,21 @@ showShifts ls =
     
         
 splitGuards::[Shift] -> [Guard]
-splitGuards ls =
+splitGuards ls = 
+    let
+        ids = getGuardIdsFromShifts ls
+        in
+            undefined
 
+getGuardIdsFromShifts::[Shift] -> [String]
 getGuardIdsFromShifts ls =
     go ls []
     where
         go [] l2 = l2
-        go (x:xs)
+        go ((Shift ((BeginShift id _):_)):xs) l2 = 
+            case id of
+                id | id `elem` l2 -> go xs l2
+                otherwise -> go xs (id:l2)
 
 splitShifts:: [Action] -> [Shift]
 splitShifts ls =
