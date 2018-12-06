@@ -7,7 +7,7 @@ import qualified Data.Map.Strict as Map
 
 
 
-main = putStrLn "tst"
+main = putStrLn $ show $ (TimeStamp 2018 12 4 12 05) > (TimeStamp 2018 12 5 12 05)
 
 
 
@@ -28,11 +28,17 @@ data    TimeStamp = TimeStamp
                     , ts_day    ::Integer
                     , ts_hour   ::Integer
                     , ts_minute ::Integer }
---      TimeStamp
+
+toMinutes (TimeStamp y m d h mi) = (y*12*30*24*60)+(m*30*24*60)+(d*24*60)+(mi)
+
 instance Eq TimeStamp where
-    (TimeStamp y m d h mi ) == (TimeStamp y2 m2 d2 h2 mi2) = 
+    t1@(TimeStamp y m d h mi ) == t2@(TimeStamp y2 m2 d2 h2 mi2) = 
         fin1 == fin2
         where
-            fin1 = (y*12*30*24*60)+(m*30*24*60)+(d*24*60)+(mi)
-            fin2 = (y2*12*30*24*60)+(m2*30*24*60)+(d2*24*60)+(mi2)
---      Eq TimeStamp
+            fin1 = toMinutes t1
+            fin2 = toMinutes t2
+
+instance Ord TimeStamp where
+    compare t1 t2 = compare (toMinutes t1) (toMinutes t2)
+
+--      TimeStamp
