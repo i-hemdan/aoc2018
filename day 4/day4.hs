@@ -21,37 +21,27 @@ data Guard = Guard String [Shift] deriving (Show)
 data Shift = Shift [Action] deriving (Show)
 
 showShifts ls =
-    go ls ""
-    where
-        go [] news = news
-        go (x:xs) news = go xs (news++"\n\n"++(show x))
+    go ls "" where      go [] news = news
+                        go (x:xs) news = go xs (news++"\n\n"++(show x))
+    
+        
 
 splitShifts:: [Action] -> [Shift]
 splitShifts ls =
-    go ls []
-    where
-        go:: [Action] -> [Shift] -> [Shift] --assumes data starts with a begin shift
-        go [] l =  (reverse l) --done
-        --if the list of shifts is empty, start with a new shift assuming the data starts with a begin shift
-        go (x:xs) [] = go xs ((Shift (x:[])):[])
-        --if this is the last action of the action list ensure the final shift action list is reversed into the proper order
-        go (x:[]) (hd@(Shift arr):tl) = go [] ((Shift (reverse (x:arr))):tl)
-        go (x:xs) (hd@(Shift arr):tl) =
-            case x of
-                --if beginning a shift, reverse the previous array to keep proper order and start new shift
-                beg@(BeginShift _ _) -> go xs ((Shift (beg:[])):(((Shift (reverse arr))):tl))
-                --add events to a shift 
-                x -> go xs ((Shift (x:arr)):tl)
-
+    go ls [] where      go:: [Action] -> [Shift] -> [Shift] --assumes data starts with a begin shift
+                        go [] l =  (reverse l) --done
+                        go (x:xs) [] = go xs ((Shift (x:[])):[])--if the list of shifts is empty, start with a new shift assuming the data starts with a begin shift
+                        go (x:[]) (hd@(Shift arr):tl) = go [] ((Shift (reverse (x:arr))):tl)--if last action ensure the final shift action list is reversed into the proper order
+                        go (x:xs) (hd@(Shift arr):tl) = case x of   beg@(BeginShift _ _) -> go xs ((Shift (beg:[])):(((Shift (reverse arr))):tl))--reverse the previous array to keep proper order and start new shift
+                                                                    x -> go xs ((Shift (x:arr)):tl)--add events to a shift  
 
 parseTimeStamps::[String] -> [(TimeStamp, [String])]
 parseTimeStamps ls =
     let parseTimeStamps' ls new_ls =
-            case ls of
-                [] -> new_ls
-                (x:xs) -> parseTimeStamps' xs ((parseTimeStamp x):new_ls)
-        in
-            parseTimeStamps' ls []
+            case ls of  [] ->   new_ls
+                        (x:xs) -> parseTimeStamps' xs ((parseTimeStamp x):new_ls)
+        in parseTimeStamps' ls []
+            
 
 
 parseTimeStamp:: String -> (TimeStamp, [String])
