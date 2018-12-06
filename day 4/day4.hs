@@ -30,13 +30,17 @@ splitShifts:: [Action] -> [Shift]
 splitShifts ls =
     go ls []
     where
-        go:: [Action] -> [Shift] -> [Shift]
+        go:: [Action] -> [Shift] -> [Shift] --assumes data starts with a begin shift
         go [] l =  (reverse l) --done
+        --if the list of shifts is empty, start with a new shift assuming the data starts with a begin shift
         go (x:xs) [] = go xs ((Shift (x:[])):[])
+        --if this is the last action of the action list ensure the final shift action list is reversed into the proper order
         go (x:[]) (hd@(Shift arr):tl) = go [] ((Shift (reverse (x:arr))):tl)
         go (x:xs) (hd@(Shift arr):tl) =
             case x of
+                --if beginning a shift, reverse the previous array to keep proper order and start new shift
                 beg@(BeginShift _ _) -> go xs ((Shift (beg:[])):(((Shift (reverse arr))):tl))
+                --add events to a shift 
                 x -> go xs ((Shift (x:arr)):tl)
 
 
