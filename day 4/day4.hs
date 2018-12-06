@@ -25,20 +25,17 @@ showShifts ls =
                         go (x:xs) news = go xs (news++"\n\n"++(show x))
     
         
-splitGuards::[Shift] -> [Guard]
-splitGuards ls = 
-    let
-        ids = getGuardIdsFromShifts ls
-        in
-            undefined
+--TODO structure shifts into individual guards
+
+idFromShift (Shift ((BeginShift id _):_) = id
 
 getGuardIdsFromShifts::[Shift] -> [String]
-getGuardIdsFromShifts ls =
+getGuardIdsFromShifts ls = 
     go ls []
     where
         go [] l2 = l2
-        go ((Shift ((BeginShift id _):_)):xs) l2 = 
-            case id of
+        go ((shif):xs) l2 = 
+            case idFromShift id of
                 id | id `elem` l2 -> go xs l2
                 otherwise -> go xs (id:l2)
 
