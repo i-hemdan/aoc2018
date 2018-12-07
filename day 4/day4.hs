@@ -13,6 +13,8 @@ main =  readFile "input.txt" >>= (\f -> putStrLn $ show $ doIt f)
 
 doIt = getGuardIdsFromShifts . splitShifts . getAllActions . sortParsedTS . parseTimeStamps . splitLines
 
+
+
 data Guard = Guard String [Shift] deriving (Show)
 data Shift = Shift [Action] deriving (Show)
 
@@ -100,12 +102,30 @@ data    TimeStamp = TimeStamp
 
 toMinutes (TimeStamp y m d h mi) = (y*12*30*24*60)+(m*30*24*60)+(d*24*60)+(mi)
 
+fromMinutes::Integer -> TimeStamp
+fromMinutes 0 = (TimeStamp 0 0 0 0 0)
+fromMinutes mi = let
+                    m1 = mi
+                    (y, m2) = divWithRem mi (12*30*24*60)
+                    (m, m3) = divWithRem m2 (30*24*60)
+                    (d, m4) = divWithRem m3 (24*60)
+                    (h, m5) = divWithRem m4 (60)
+                    in (TimeStamp y m d h m5)
+divWithRem::Integer -> Integer -> (Integer, Integer)
+divWithRem _ 0 = (0,0)                    
+divWithRem a d = ((div a d),(rem a d)) 
+
 instance Eq TimeStamp where
     t1@(TimeStamp y m d h mi ) == t2@(TimeStamp y2 m2 d2 h2 mi2) = 
         fin1 == fin2
         where
             fin1 = toMinutes t1
             fin2 = toMinutes t2
+
+instance Num TimeStamp where
+    t1 + t2 = fromMinutes( (toMinutes t1) + (toMinutes t2) )
+    t1 - t2 = fromMinutes( (toMinutes t1) - (toMinutes t2) )
+
 
 instance Ord TimeStamp where
     compare t1 t2 = compare (toMinutes t1) (toMinutes t2)
