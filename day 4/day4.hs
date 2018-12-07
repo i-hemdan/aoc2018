@@ -9,13 +9,13 @@ import qualified Data.Map.Strict as Map
 
 
 
-main =  readFile "input.txt" >>= (\f -> putStrLn $ show $ doIt f)
+main =  readFile "input4.txt" >>= (\f -> putStrLn $ show $ doIt f)
 
 
 doIt =
     conv
     . Map.toList
-    . sepGActions Map.empty 
+    . (sepGActions Map.empty) 
     . parseActions 
     . sortParsedTS 
     . parseTimeStamps 
@@ -31,28 +31,34 @@ convMaToRanges ls =
     let 
         sleeps = [e| e@(S _)<-ls]
         wakes  = [e| e@(W _)<-ls]
+        lens = length sleeps
+        lenw = length wakes
         in
-            [ (s,w) | (W w) <- wakes | (S s) <- sleeps ]
+            case (lens,lenw) of
+                (lens,lenw)| lens /= lenw -> (error $ "Not equal lens" ++ (show lens) ++ "lenw" ++ (show lenw))
+                otherwise -> [ (s,w) | (S s) <- sleeps | (W w) <- wakes ]
+            
 
 
 sepGActions m ls =
     case ls of
         [] -> m
-        ((Action _ _ BeginShift):xs) -> sepGActions m xs
-        (a@(Action _ id _):xs) -> 
-            let (_,newm) = (Map.insertLookupWithKey f id [conv a] m) in
-                sepGActions newm xs
-        where
-            f key new_value old_value = old_value ++ new_value
-            conv (Action mi _ Sleep) = (S mi)
-            conv (Action mi _ Wake)  = (W mi)
+        (x:xs) ->
+            case x of
+                (Action _ _ BeginShift) -> sepGActions m xs
+                ((Action mi id at)) -> 
+                    let newm = (Map.insertWith (++) id [(conv (Action mi id at))] m) 
+                        in  sepGActions newm xs
+                            where
+                                conv (Action mi _ Sleep) = (S mi)
+                                conv (Action mi _ Wake)  = (W mi)
 
 
 parseActions ls = 
     let arr =[(parseAction n)| n<-ls]
         in go arr [] ""
         where
-            go [] new_arr _ = (reverse new_arr)
+            go [] new_arr _ = new_arr
             go (x:xs) new_arr id =
                 case x of
                     (Action ts new_id BeginShift)   -> go xs (x:new_arr) new_id
