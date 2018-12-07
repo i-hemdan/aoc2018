@@ -11,11 +11,11 @@ import qualified Data.Map.Strict as Map
 main =  readFile "input.txt" >>= (\f -> putStrLn $ show $ doIt f)
 
 
-doIt = getGuardIdsFromShifts . splitShifts . getAllActions . sortParsedTS . parseTimeStamps . splitLines
+doIt = getGuardsFromShifts [] . splitShifts . getAllActions . sortParsedTS . parseTimeStamps . splitLines
 
 
-
-data Guard = Guard String [Shift] deriving (Show)
+--                 |id    |asleep |most asleep minute
+data Guard = Guard String Integer [Integer] deriving (Show)
 data Shift = Shift [Action] deriving (Show)
 
 showShifts ls =
@@ -26,6 +26,40 @@ showShifts ls =
 --TODO structure shifts into individual guards
 
 idFromShift (Shift ((BeginShift id _):_)) = id
+
+--assuming even length
+findMostSleptMinute::Guard -> Guard
+findMostSleptMinute guard@(Guard id tasleep arr) =
+    let
+        asleepMin = [(-n) | n<-arr, n < 0]
+        awakeMin = [n | n<-arr, n >= 0]
+        minPairs = zip asleepMin awakeMin
+        minRanges = [[a..b] | (a,b)<-minPairs]
+        most = getMostOfSets minRanges
+        in
+            (Guard id tasleep [most])
+
+getGuardsFromShifts:: [Guard] ->[Shift] -> [Guard]
+getGuardsFromShifts guards shifts =
+    case shifts of
+        [] -> (reverse guards)
+        (x:xs) -> getGuardsFromShifts ((go x (Guard "" 0 [0])):guards) xs
+        where
+            go::Shift -> Guard -> Guard
+            go (Shift []) g = (findMostSleptMinute g)
+            go (Shift (hd:tl)) guard = 
+                case hd of
+                    (BeginShift id _) -> go (Shift tl) (Guard id 0 [0])
+                    (Asleep (TimeStamp _ _ _ _ mi)) -> 
+                        let 
+                            g@(Guard id maslp mostaslp) = guard 
+                            in
+                                go (Shift tl) (Guard id (maslp - mi) ((-mi):mostaslp))
+                    (WakesUp (TimeStamp _ _ _ _ mi)) ->
+                        let
+                            g@(Guard id maslp mostaslp) = guard
+                            in
+                                go (Shift tl) (Guard id (maslp + mi) (mi:mostaslp))
 
 getGuardIdsFromShifts::[Shift] -> [String]
 getGuardIdsFromShifts ls = 
@@ -135,5 +169,23 @@ instance Ord TimeStamp where
 --Utils
 splitLines:: String -> [String]
 splitLines str = splitOn "\n" str
+
+joinSets:: [[Integer]] -> [Integer]
+joinSets ls =
+    go ls []
+    where
+        go [] l = l
+        go (x:xs) l = go xs (l++x)
+getMost:: [Integer] -> Integer
+getMost ls =
+    let g = group ls
+        in  go g 0 0
+            where   go:: [[Integer]] ->Integer ->Integer ->Integer
+                    go [] _ n1 = n1
+                    go (x:xs) l1 n1 =
+                        case (toInteger (length x)) of
+                            len | len > l1  -> go xs len (x!!0)
+                            otherwise       -> go xs l1 n1
+getMostOfSets = getMost.joinSets
 
 -- Utils end
