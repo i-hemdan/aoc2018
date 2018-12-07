@@ -11,10 +11,23 @@ import qualified Data.Map.Strict as Map
 main =  readFile "input.txt" >>= (\f -> putStrLn $ show $ doIt f)
 
 
-doIt = parseActions . sortParsedTS . parseTimeStamps . splitLines
+doIt = sepGActions Map.empty . parseActions . sortParsedTS . parseTimeStamps . splitLines
 
-data Action = Action TimeStamp String ActionType deriving (Show)
+
+data Guard = Guard String Integer [[Integer]]
+data Action = Action Integer String ActionType deriving (Show)
 data ActionType = BeginShift|Sleep|Wake deriving (Show)
+
+sepGActions m ls =
+    case ls of
+        [] -> m
+        ((Action _ _ BeginShift):xs) -> sepGActions m xs
+        (a@(Action _ id _):xs) -> 
+            let (_,newm) = (Map.insertLookupWithKey f id [a] m) in
+                sepGActions newm xs
+        where
+            f key new_value old_value = old_value ++ new_value
+
 
 parseActions ls = 
     let arr =[(parseAction n)| n<-ls]
@@ -29,9 +42,9 @@ parseActions ls =
             parseAction::(TimeStamp, [String]) -> Action
             parseAction (ts, strArr) =
                 case strArr of
-                    ["Guard", id, _, _] -> (Action ts id BeginShift)
-                    ["falls", _]        -> (Action ts "" Sleep)
-                    ["wakes", _]        -> (Action ts "" Wake)
+                    ["Guard", id, _, _] -> (Action (ts_minute ts) id BeginShift)
+                    ["falls", _]        -> (Action (ts_minute ts) "" Sleep)
+                    ["wakes", _]        -> (Action (ts_minute ts) "" Wake)
 
 parseTimeStamps::[String] -> [(TimeStamp, [String])]
 parseTimeStamps ls =
@@ -100,8 +113,9 @@ joinSets:: [[Integer]] -> [Integer]
 joinSets ls =
     go ls []
     where
-        go [] l = l
+        go [] l = sort l
         go (x:xs) l = go xs (l++x)
+    
 getMost:: [Integer] -> Integer
 getMost ls =
     let g = group ls
