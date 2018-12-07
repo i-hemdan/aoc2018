@@ -1,3 +1,4 @@
+{-# LANGUAGE ParallelListComp #-}
 module Main where
 
 import Data.List
@@ -11,22 +12,40 @@ import qualified Data.Map.Strict as Map
 main =  readFile "input.txt" >>= (\f -> putStrLn $ show $ doIt f)
 
 
-doIt = sepGActions Map.empty . parseActions . sortParsedTS . parseTimeStamps . splitLines
+doIt =
+    conv
+    . Map.toList
+    . sepGActions Map.empty 
+    . parseActions 
+    . sortParsedTS 
+    . parseTimeStamps 
+    . splitLines
 
-
-data Guard = Guard String Integer [[Integer]]
 data Action = Action Integer String ActionType deriving (Show)
+data MiniAction = S Integer|W Integer deriving (Show)
 data ActionType = BeginShift|Sleep|Wake deriving (Show)
+
+conv ls = [(id,(convMaToRanges l))| (id,l) <- ls]
+
+convMaToRanges ls = 
+    let 
+        sleeps = [e| e@(S _)<-ls]
+        wakes  = [e| e@(W _)<-ls]
+        in
+            [ (s,w) | (W w) <- wakes | (S s) <- sleeps ]
+
 
 sepGActions m ls =
     case ls of
         [] -> m
         ((Action _ _ BeginShift):xs) -> sepGActions m xs
         (a@(Action _ id _):xs) -> 
-            let (_,newm) = (Map.insertLookupWithKey f id [a] m) in
+            let (_,newm) = (Map.insertLookupWithKey f id [conv a] m) in
                 sepGActions newm xs
         where
             f key new_value old_value = old_value ++ new_value
+            conv (Action mi _ Sleep) = (S mi)
+            conv (Action mi _ Wake)  = (W mi)
 
 
 parseActions ls = 
