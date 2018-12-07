@@ -11,74 +11,27 @@ import qualified Data.Map.Strict as Map
 main =  readFile "input.txt" >>= (\f -> putStrLn $ show $ doIt f)
 
 
-doIt = getGuardsFromShifts [] . splitShifts . getAllActions . sortParsedTS . parseTimeStamps . splitLines
+doIt = parseActions . sortParsedTS . parseTimeStamps . splitLines
 
+data Action = Action TimeStamp String ActionType deriving (Show)
+data ActionType = BeginShift|Sleep|Wake deriving (Show)
 
---                 |id    |asleep |most asleep minute
-data Guard = Guard String Integer [Integer] deriving (Show)
-data Shift = Shift [Action] deriving (Show)
-
-showShifts ls =
-    go ls "" where      go [] news = news
-                        go (x:xs) news = go xs (news++"\n\n"++(show x))
-    
-        
---TODO structure shifts into individual guards
-
-idFromShift (Shift ((BeginShift id _):_)) = id
-
---assuming even length
-findMostSleptMinute::Guard -> Guard
-findMostSleptMinute guard@(Guard id tasleep arr) =
-    let
-        asleepMin = [(-n) | n<-arr, n < 0]
-        awakeMin = [n | n<-arr, n >= 0]
-        minPairs = zip asleepMin awakeMin
-        minRanges = [[a..b] | (a,b)<-minPairs]
-        most = getMostOfSets minRanges
-        in
-            (Guard id tasleep [most])
-
-getGuardsFromShifts:: [Guard] ->[Shift] -> [Guard]
-getGuardsFromShifts guards shifts =
-    case shifts of
-        [] -> (reverse guards)
-        (x:xs) -> getGuardsFromShifts ((go x (Guard "" 0 [0])):guards) xs
+parseActions ls = 
+    let arr =[(parseAction n)| n<-ls]
+        in go arr [] ""
         where
-            go::Shift -> Guard -> Guard
-            go (Shift []) g = (findMostSleptMinute g)
-            go (Shift (hd:tl)) guard = 
-                case hd of
-                    (BeginShift id _) -> go (Shift tl) (Guard id 0 [0])
-                    (Asleep (TimeStamp _ _ _ _ mi)) -> 
-                        let 
-                            g@(Guard id maslp mostaslp) = guard 
-                            in
-                                go (Shift tl) (Guard id (maslp - mi) ((-mi):mostaslp))
-                    (WakesUp (TimeStamp _ _ _ _ mi)) ->
-                        let
-                            g@(Guard id maslp mostaslp) = guard
-                            in
-                                go (Shift tl) (Guard id (maslp + mi) (mi:mostaslp))
+            go [] new_arr _ = (reverse new_arr)
+            go (x:xs) new_arr id =
+                case x of
+                    (Action ts new_id BeginShift)   -> go xs (x:new_arr) new_id
+                    (Action ts _ act)               -> go xs ((Action ts id act):new_arr) id
 
-getGuardIdsFromShifts::[Shift] -> [String]
-getGuardIdsFromShifts ls = 
-    go ls []
-    where
-        go [] l2 = l2
-        go ((shif):xs) l2 = 
-            case (idFromShift shif) of
-                id1 | id1 `elem` l2 -> go xs l2
-                otherwise -> go xs ((idFromShift shif):l2)
-
-splitShifts:: [Action] -> [Shift]
-splitShifts ls =
-    go ls [] where      go:: [Action] -> [Shift] -> [Shift] --assumes data starts with a begin shift
-                        go [] l =  (reverse l) --done
-                        go (x:xs) [] = go xs ((Shift (x:[])):[])--if the list of shifts is empty, start with a new shift assuming the data starts with a begin shift
-                        go (x:[]) (hd@(Shift arr):tl) = go [] ((Shift (reverse (x:arr))):tl)--if last action ensure the final shift action list is reversed into the proper order
-                        go (x:xs) (hd@(Shift arr):tl) = case x of   beg@(BeginShift _ _) -> go xs ((Shift (beg:[])):(((Shift (reverse arr))):tl))--reverse the previous array to keep proper order and start new shift
-                                                                    x -> go xs ((Shift (x:arr)):tl)--add events to a shift  
+            parseAction::(TimeStamp, [String]) -> Action
+            parseAction (ts, strArr) =
+                case strArr of
+                    ["Guard", id, _, _] -> (Action ts id BeginShift)
+                    ["falls", _]        -> (Action ts "" Sleep)
+                    ["wakes", _]        -> (Action ts "" Wake)
 
 parseTimeStamps::[String] -> [(TimeStamp, [String])]
 parseTimeStamps ls =
@@ -86,8 +39,6 @@ parseTimeStamps ls =
             case ls of  [] ->   new_ls
                         (x:xs) -> parseTimeStamps' xs ((parseTimeStamp x):new_ls)
         in parseTimeStamps' ls []
-            
-
 
 parseTimeStamp:: String -> (TimeStamp, [String])
 parseTimeStamp str =
@@ -102,29 +53,6 @@ parseTimeStamp str =
 
 sortParsedTS:: [(TimeStamp, [String])] -> [(TimeStamp, [String])]
 sortParsedTS tstupls = sortBy (\(a,_)(b,_) -> compare a b) tstupls
-
---      shift
-
-data    Action =    BeginShift String TimeStamp |
-                    Asleep TimeStamp            |
-                    WakesUp TimeStamp
-                    deriving (Show)
-
-getAllActions ls = 
-    go ls []
-    where
-        go [] new_ls = (reverse new_ls)
-        go (x:xs) new_ls = go xs ((actionFromTsLs x):new_ls)
-
-actionFromTsLs (_, []) = error "empty list in actionFromTsLs"
-actionFromTsLs (ts, (hd:tl)) =
-    case hd of
-        ("Guard") -> BeginShift (tl!!0) ts
-        ("falls") -> Asleep ts
-        ("wakes") -> WakesUp ts
-        otherwise -> error "invalid action"
-
---      Action   
 
 data    TimeStamp = TimeStamp  
                     { ts_year   ::Integer
@@ -163,8 +91,6 @@ instance Num TimeStamp where
 
 instance Ord TimeStamp where
     compare t1 t2 = compare (toMinutes t1) (toMinutes t2)
-
---      TimeStamp
 
 --Utils
 splitLines:: String -> [String]
