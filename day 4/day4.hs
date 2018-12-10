@@ -9,7 +9,7 @@ import qualified Data.Map.Strict as Map
 
 
 
-main =  readFile "input4.txt" >>= (\f -> putStrLn $ show $ doIt f)
+main =  readFile "input.txt" >>= (\f -> putStrLn $ show $ doIt f)
 
 
 doIt =
@@ -25,7 +25,7 @@ data Action = Action Integer String ActionType deriving (Show)
 data MiniAction = S Integer|W Integer deriving (Show)
 data ActionType = BeginShift|Sleep|Wake deriving (Show)
 
-conv ls = [(id,(convMaToRanges l))| (id,l) <- ls]
+conv ls = [(id,(getMostOfSets $ convMaToRanges l), (length (filter (==(getMostOfSets $ convMaToRanges l)) (joinSets $ convMaToRanges l))), (length $ joinSets $ convMaToRanges l))| (id,l) <- ls]
 
 convMaToRanges ls = 
     let 
@@ -36,7 +36,7 @@ convMaToRanges ls =
         in
             case (lens,lenw) of
                 (lens,lenw)| lens /= lenw -> (error $ "Not equal lens" ++ (show lens) ++ "lenw" ++ (show lenw))
-                otherwise -> [ (s,w) | (S s) <- sleeps | (W w) <- wakes ]
+                otherwise -> [ [s..w] | (S s) <- sleeps | (W w) <- wakes ]
             
 
 
@@ -128,8 +128,20 @@ instance Num TimeStamp where
 
 
 instance Ord TimeStamp where
-    compare t1 t2 = compare (toMinutes t1) (toMinutes t2)
-
+    compare t t_ =
+                case (t, t_) of 
+                    (t1@(TimeStamp y m d h mi), t2@(TimeStamp y2 m2 d2 h2 mi2))
+                            |y  <  y2    -> LT
+                            |y  >  y2    -> GT
+                            |m  <  m2    -> LT
+                            |m  >  m2    -> GT
+                            |d  <  d2    -> LT
+                            |d  >  d2    -> GT
+                            |h  <  h2    -> LT
+                            |h  >  h2    -> GT
+                            |mi <  mi2   -> LT
+                            |mi >  mi2   -> GT
+                            |mi == mi2   -> EQ
 --Utils
 splitLines:: String -> [String]
 splitLines str = splitOn "\n" str
