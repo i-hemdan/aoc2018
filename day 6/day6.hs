@@ -3,14 +3,14 @@ module Main where
 import Data.List
 import Data.List.Split
 
-main = readFile "input.txt" >>= (\f -> putStrLn $ show $ genPlane $ sort $ parsePoints f)
+main = readFile "input.txt" >>= (\f -> putStrLn $ show $ (!!0) $ calcAllDists $ genPlane $ sort $ parsePoints f)
 
-calcAllDists ls ls2 = [(P x y [(b, manD a b) | b<-ls2]) | a@(P x y _)<-ls]
+calcAllDists (ls, ls2) = [(P x y (sortBy s [(b, manD a b) | b<-ls2])) | a@(P x y _)<-ls] where s = (\(_,a) (_,b)->compare a b)
 
 genPlane ls = let   ((P fx fy _):_) = ls
                     ((P lx ly _):_) = reverse ls
                     (xmod, ymod) = (abs (fx-lx), abs (fy-ly))
-                    (begin, end) = ((P (fx-xmod) (fy-ymod) []), (P (lx+xmod) (ly+ymod) [])) in genFromTo begin end
+                    (begin, end) = ((P (fx-xmod) (fy-ymod) []), (P (lx+xmod) (ly+ymod) [])) in ((genFromTo begin end), ls)
 
 parsePoints str = [P (read a::Int) (read b::Int) []|s<-(splitOn "\n" str), let (a:b:[])=(splitOn ", " s)]
 
