@@ -5,7 +5,9 @@ import Data.List.Split
 
 main = readFile "input.txt" >>= (\f -> putStrLn $ show $ (!!0) $ calcAllDists $ genPlane $ sort $ parsePoints f)
 
-calcAllDists (ls, ls2) = [(P x y (sortBy s [(b, manD a b) | b<-ls2]) abound) | a@(P x y _ abound)<-ls] where s = (\(_,a) (_,b)->compare a b)
+calcAllDists (ls, ls2) = 
+    [(P x y (sortBy s [(b, manD a b) | b<-ls2]) abound) | a@(P x y _ abound)<-ls] 
+    where   s = (\(_,a) (_,b)->compare a b)
 
 genPlane ls = let   ((P fx fy _ _):_) = ls
                     ((P lx ly _ _):_) = reverse ls
