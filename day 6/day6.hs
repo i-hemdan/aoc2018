@@ -3,11 +3,25 @@ module Main where
 import Data.List
 import Data.List.Split
 
-main = readFile "input.txt" >>= (\f -> putStrLn $ show $ (!!0) $ calcAllDists $ genPlane $ sort $ parsePoints f)
+main = readFile "input.txt" >>= (\f -> putStrLn $ show $ calcAllDists $ genPlane $ sort $ parsePoints f)
+
+sepAreas ls =
+    let 
+        l@(fs:_) = ls
+        getAreaAndKeepRest (P x y _ _) (p@(P x1 y1 _ _):ols) lsMatched lsRest
+            |(x==x1) && (y==y1) = getAreaAndKeepRest ols (p:lsMatched) lsRest
+            |otherwise = getAreaAndKeepRest ols lsMatched (p:lsRest)
+        getAreaAndKeepRest _ [] lsMatched lsRest = (lsMatched, lsRest)
+        in
+            go f l
+            where
+                go = undefined --do this soon
+
 
 calcAllDists (ls, ls2) = 
-    [(P x y (sortBy s [(b, manD a b) | b<-ls2]) abound) | a@(P x y _ abound)<-ls] 
+    map (\(P x y (hd:_) b) -> (P x y [hd] b)) $ filter filterMul [(P x y (sortBy s [(b, manD a b) | b<-ls2]) abound) | a@(P x y _ abound)<-ls] 
     where   s = (\(_,a) (_,b)->compare a b)
+            filterMul (P _ _ ((_,a):(_,b):_) _) = a /= b
 
 genPlane ls = let   ((P fx fy _ _):_) = ls
                     ((P lx ly _ _):_) = reverse ls
