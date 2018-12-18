@@ -3,20 +3,15 @@ module Main where
 import Data.List
 import Data.List.Split
 
-main = readFile "input.txt" >>= (\f -> putStrLn $ show $ calcAllDists $ genPlane $ sort $ parsePoints f)
+import qualified Data.Map as M
 
-sepAreas ls =
-    let 
-        l@(fs:_) = ls
-        getAreaAndKeepRest (P x y _ _) (p@(P x1 y1 _ _):ols) lsMatched lsRest
-            |(x==x1) && (y==y1) = getAreaAndKeepRest ols (p:lsMatched) lsRest
-            |otherwise = getAreaAndKeepRest ols lsMatched (p:lsRest)
-        getAreaAndKeepRest _ [] lsMatched lsRest = (lsMatched, lsRest)
-        in
-            go f l
-            where
-                go = undefined --do this soon
+main = readFile "input.txt" >>= (\f -> putStrLn $ show $ conv [] $ calcAllDists $ genPlane $ sort $ parsePoints f)
 
+sepAreas ls = go ls M.empty where go l m = undefined
+
+conv::[((Int,Int,Bound,Int),(Int,Int))] -> [Point] ->[((Int,Int,Bound,Int),(Int,Int))]
+conv nls [] = nls
+conv nls ((P x y (((P x1 y1 _ _), distance):[]) b):ls) = conv (((x,y,b,distance),(x1,y1)):nls) ls
 
 calcAllDists (ls, ls2) = 
     map (\(P x y (hd:_) b) -> (P x y [hd] b)) $ filter filterMul [(P x y (sortBy s [(b, manD a b) | b<-ls2]) abound) | a@(P x y _ abound)<-ls] 
@@ -26,7 +21,7 @@ calcAllDists (ls, ls2) =
 genPlane ls = let   ((P fx fy _ _):_) = ls
                     ((P lx ly _ _):_) = reverse ls
                     (xmod, ymod) = (abs (fx-lx), abs (fy-ly))
-                    (begin, end) = ((P (fx-xmod) (fy-ymod) [] Fin), (P (lx+xmod) (ly+ymod) [] Fin)) in ((genFromTo begin end), ls)
+                    (begin, end) = ((P (fx) (fy) [] Fin), (P (lx) (ly) [] Fin)) in ((genFromTo begin end), ls)
 
 parsePoints str = [P (read a::Int) (read b::Int) [] Fin|s<-(splitOn "\n" str), let (a:b:[])=(splitOn ", " s)]
 
